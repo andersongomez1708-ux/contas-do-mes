@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contas do M�s</title>
+  <style>
+    :root { --b:#111; --g:#666; --bg:#f6f7fb; --card:#fff; --br:#e7e7ee; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: var(--b); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
+    h1 { margin: 6px 0 14px; font-size: 22px; }
+    .grid { display:grid; gap:12px; grid-template-columns: 1fr; }
+    @media (min-width: 900px){ .grid { grid-template-columns: 360px 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--br); border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.04); }
+    label { display:block; font-size: 12px; color: var(--g); margin: 10px 0 6px; }
+    input, select, button, textarea {
+      width:100%; box-sizing:border-box; border:1px solid var(--br); border-radius: 10px;
+      padding: 10px; font-size: 14px; background:#fff;
+    }
+    button { cursor:pointer; border:1px solid #d7d7e3; background:#111; color:#fff; }
+    button.secondary{ background:#fff; color:#111; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .row3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .kpis { display:grid; grid-template-columns: 1fr; gap:10px; }
+    @media (min-width: 520px){ .kpis{ grid-template-columns: 1fr 1fr 1fr 1fr; } }
+    .kpi { border:1px solid var(--br); border-radius: 12px; padding: 10px; }
+    .kpi .t { font-size: 12px; color: var(--g); }
+    .kpi .v { font-size: 18px; margin-top: 6px; font-weight: 650; }
+    .muted { color: var(--g); font-size: 12px; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align:left; border-bottom:1px solid var(--br); padding: 10px 8px; font-size: 13px; }
+    th { color: var(--g); font-weight: 600; }
+    .pill { display:inline-block; padding: 4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--br); }
+    .pill.in { background:#eafff0; }
+    .pill.out { background:#fff0f0; }
+    .pill.save { background:#eef4ff; }
+    .actions { display:flex; gap:10px; flex-wrap: wrap; margin-top: 10px; }
+    .actions button { width:auto; padding: 10px 12px; }
+    .danger { background:#b00020; border-color:#b00020; }
+    .right { text-align:right; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Contas do M�s</h1>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row">
+          <div>
+            <label>M�s</label>
+            <input id="month" type="month" />
+          </div>
+          <div>
+            <label>Tipo</label>
+            <select id="type">
+              <option value="income">Ganhei (receita)</option>
+              <option value="expense">Gastei (despesa)</option>
+              <option value="saving">Guardei (poupan�a)</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Categoria</label>
+        <input id="category" placeholder="ex: renda, comida, gasolina, sal�rio..." />
+
+        <div class="row">
+          <div>
+            <label>Valor (�)</label>
+            <input id="amount" inputmode="decimal" placeholder="ex: 25,90" />
+          </div>
+          <div>
+            <label>Data</label>
+            <input id="date" type="date" />
+          </div>
+        </div>
+
+        <label>Nota (opcional)</label>
+        <input id="note" placeholder="ex: compra no supermercado" />
+
+        <div class="actions">
+          <button id="addBtn">Adicionar</button>
+          <button class="secondary" id="clearFormBtn">Limpar</button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--br);margin:14px 0;">
+        <div class="actions">
+          <button class="secondary" id="exportBtn">Exportar JSON</button>
+          <button class="secondary" id="importBtn">Importar JSON</button>
+          <input id="importFile" type="file" accept="application/json" style="display:none" />
+          <button class="danger" id="wipeBtn">Apagar tudo</button>
+        </div>
+        <p class="muted" style="margin-top:10px;">Os dados ficam guardados neste dispositivo (browser) automaticamente.</p>
+      </div>
+
+      <div class="card">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Ganhei</div>
+            <div class="v" id="kpiIncome">�0,00</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Gastei</div>
+            <div class="v" id="kpiExpense">�0,00</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Guardei</div>
+            <div class="v" id="kpiSaving">�0,00</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Saldo (Ganhei - Gastei - Guardei)</div>
+            <div class="v" id="kpiBalance">�0,00</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <div>
+            <div class="muted">Movimentos do m�s</div>
+            <div class="muted" id="countLine">0 itens</div>
+          </div>
+          <div class="row" style="max-width:360px; width:100%;">
+            <div>
+              <label>Filtrar tipo</label>
+              <select id="filterType">
+                <option value="all">Todos</option>
+                <option value="income">Ganhei</option>
+                <option value="expense">Gastei</option>
+                <option value="saving">Guardei</option>
+              </select>
+            </div>
+            <div>
+              <label>Pesquisar</label>
+              <input id="search" placeholder="categoria ou nota..." />
+            </div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Categoria</th>
+              <th>Nota</th>
+              <th class="right">Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const LS_KEY = "contas_mes_v1";
+
+  const fmtEUR = (n) => new Intl.NumberFormat("pt-PT", { style:"currency", currency:"EUR" }).format(n);
+
+  function todayISO() {
+    const d = new Date();
+    const tz = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+    return tz.toISOString().slice(0,10);
+  }
+
+  function monthNow() {
+    const d = new Date();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    return `${d.getFullYear()}-${m}`;
+  }
+
+  function parseAmount(value) {
+    // aceita "25,90" ou "25.90"
+    const v = (value ?? "").trim().replace(/\s/g,"").replace(",",".");
+    const n = Number(v);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function loadAll() {
+    try {
+      return JSON.parse(localStorage.getItem(LS_KEY)) ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveAll(items) {
+    localStorage.setItem(LS_KEY, JSON.stringify(items));
+  }
+
+  function uid() {
+    return Math.random().toString(16).slice(2) + Date.now().toString(16);
+  }
+
+  function typeLabel(t) {
+    if (t === "income") return "Ganhei";
+    if (t === "expense") return "Gastei";
+    return "Guardei";
+  }
+
+  function typeClass(t) {
+    if (t === "income") return "pill in";
+    if (t === "expense") return "pill out";
+    return "pill save";
+  }
+
+  function getSelectedMonth() {
+    return $("month").value || monthNow();
+  }
+
+  function inMonth(item, month) {
+    // month "YYYY-MM"
+    return (item.date || "").slice(0,7) === month;
+  }
+
+  function computeKpis(items, month) {
+    let income = 0, expense = 0, saving = 0;
+
+    for (const it of items) {
+      if (!inMonth(it, month)) continue;
+      if (it.type === "income") income += it.amount;
+      else if (it.type === "expense") expense += it.amount;
+      else saving += it.amount;
+    }
+    const balance = income - expense - saving;
+    return { income, expense, saving, balance };
+  }
+
+  function render() {
+    const month = getSelectedMonth();
+    const filterType = $("filterType").value;
+    const q = ($("search").value || "").trim().toLowerCase();
+
+    const all = loadAll();
+    const monthItems = all.filter(it => inMonth(it, month));
+
+    const { income, expense, saving, balance } = computeKpis(all, month);
+    $("kpiIncome").textContent = fmtEUR(income);
+    $("kpiExpense").textContent = fmtEUR(expense);
+    $("kpiSaving").textContent = fmtEUR(saving);
+    $("kpiBalance").textContent = fmtEUR(balance);
+
+    // ordenar por data desc
+    monthItems.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
+
+    const filtered = monthItems.filter(it => {
+      if (filterType !== "all" && it.type !== filterType) return false;
+      if (!q) return true;
+      return (it.category || "").toLowerCase().includes(q) || (it.note || "").toLowerCase().includes(q);
+    });
+
+    $("countLine").textContent = `${filtered.length} item(s)`;
+
+    const tbody = $("tbody");
+    tbody.innerHTML = "";
+
+    for (const it of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdDate = document.createElement("td");
+      tdDate.textContent = it.date || "";
+      tr.appendChild(tdDate);
+
+      const tdType = document.createElement("td");
+      const pill = document.createElement("span");
+      pill.className = typeClass(it.type);
+      pill.textContent = typeLabel(it.type);
+      tdType.appendChild(pill);
+      tr.appendChild(tdType);
+
+      const tdCat = document.createElement("td");
+      tdCat.textContent = it.category || "";
+      tr.appendChild(tdCat);
+
+      const tdNote = document.createElement("td");
+      tdNote.textContent = it.note || "";
+      tr.appendChild(tdNote);
+
+      const tdVal = document.createElement("td");
+      tdVal.className = "right";
+      tdVal.textContent = fmtEUR(it.amount || 0);
+      tr.appendChild(tdVal);
+
+      const tdDel = document.createElement("td");
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Apagar";
+      delBtn.className = "secondary";
+      delBtn.style.padding = "8px 10px";
+      delBtn.onclick = () => {
+        const next = loadAll().filter(x => x.id !== it.id);
+        saveAll(next);
+        render();
+      };
+      tdDel.appendChild(delBtn);
+      tr.appendChild(tdDel);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  function addItem() {
+    const month = getSelectedMonth();
+    const type = $("type").value;
+    const category = ($("category").value || "").trim();
+    const note = ($("note").value || "").trim();
+    const amount = parseAmount($("amount").value);
+    const date = $("date").value || (month + "-01");
+
+    if (!category) return alert("Escreve uma categoria (ex: comida, renda, sal�rio).");
+    if (!Number.isFinite(amount) || amount <= 0) return alert("Escreve um valor v�lido (> 0).");
+    if (!date) return alert("Escolhe uma data.");
+
+    const item = { id: uid(), type, category, note, amount, date };
+    const all = loadAll();
+    all.push(item);
+    saveAll(all);
+
+    // limpar inputs principais mas manter m�s
+    $("category").value = "";
+    $("note").value = "";
+    $("amount").value = "";
+    $("date").value = "";
+
+    render();
+  }
+
+  function exportJSON() {
+    const data = loadAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "contas-mes-backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error("Formato inv�lido");
+        // valida��o m�nima
+        const cleaned = data
+          .filter(x => x && typeof x === "object")
+          .map(x => ({
+            id: x.id || uid(),
+            type: ["income","expense","saving"].includes(x.type) ? x.type : "expense",
+            category: String(x.category || "").slice(0,60),
+            note: String(x.note || "").slice(0,120),
+            amount: Number(x.amount) || 0,
+            date: String(x.date || "").slice(0,10)
+          }))
+          .filter(x => x.amount > 0 && x.category && x.date);
+
+        saveAll(cleaned);
+        render();
+        alert("Importado com sucesso.");
+      } catch (e) {
+        alert("Falha ao importar. Confirma se o ficheiro � JSON v�lido.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // init
+  $("month").value = monthNow();
+  $("date").value = todayISO();
+
+  $("addBtn").addEventListener("click", addItem);
+  $("clearFormBtn").addEventListener("click", () => {
+    $("category").value = "";
+    $("note").value = "";
+    $("amount").value = "";
+    $("date").value = todayISO();
+  });
+
+  $("month").addEventListener("change", render);
+  $("filterType").addEventListener("change", render);
+  $("search").addEventListener("input", render);
+
+  $("exportBtn").addEventListener("click", exportJSON);
+
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (file) importJSON(file);
+    e.target.value = "";
+  });
+
+  $("wipeBtn").addEventListener("click", () => {
+    if (confirm("Tens a certeza que queres apagar tudo?")) {
+      localStorage.removeItem(LS_KEY);
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
+
